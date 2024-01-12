@@ -1,0 +1,142 @@
+---
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: action
+name: Kustomize Deploy
+description: Deploy to Kubernetes cluster using a Kustomize config
+inputs:
+  kustomization-base-dir:
+    description: Path to the base kustomize directory to apply / deploy
+    required: true    
+  kustomization-overlays-dir:
+    description: Path to the overlays kustomize directory to apply / deploy
+    required: false
+  environment-variables:
+    description: Parameters as json to be replace in resource files
+    required: false
+    
+runs:
+  using: composite
+  steps:
+    - name: kuberenetes-render-yaml-file-for-base-dir
+      id: kuberenetes-render-yaml-file-for-base-dir
+      uses: docker://amazon/aws-cli:2.12.6
+      shell: sh
+      run: |
+        if [ ! -z "${{ inputs.environment-variables }}" ]; then
+
+          # Check if the directory exists
+          if [ -d ${{ inputs.kustomization-base-dir }} ]; then
+            echo "Directory '${{ inputs.kustomization-base-dir }}' exists."
+
+            # Remove the curly braces and split key-value pairs by commas
+            pairs=$(sed 's/[{}]/''/g; s/,/ /g' <<< "${{ inputs.environment-variables }}")
+
+            # Find YAML files in the specified directory and its subdirectories
+            FILES=$(find "${{ inputs.kustomization-base-dir }}" -type f \( -name '*.yml' -o -name '*.yaml' \) ! -name 'kustomization.yaml' ! -name 'kustomization.yml')
+
+            if [ -n "$FILES" ]; then
+              echo "YAML files found in '${{ inputs.kustomization-base-dir }}':"
+              echo "$FILES"
+
+              # Loop through each YAML file and perform string replacement
+              for FILE in $FILES; do
+                echo "Replacing placeholders in $FILE"
+               
+                # Replace placeholders based on extracted key-value pairs
+                for pair in $pairs; do
+                  key=$(cut -d':' -f1 <<< "$pair")
+                  value=$(cut -d':' -f2- <<< "$pair")
+                  echo "Key: $key, Value: $value"
+                  echo "Replacing started in $FILE file"
+                  sed -i -e "s#$key#$value#g" "$FILE"
+                done
+              echo "After Replacing value in $FILE file\n"
+              cat "$FILE"
+              done
+            else
+              echo "No YAML files found in '${{ inputs.kustomization-base-dir }}'."
+              exit 1
+            fi
+          else
+            echo "Directory '${{ inputs.kustomization-base-dir }}' does not exist."
+            exit 1  
+          fi
+        else
+          echo "There are no variables to replace in resource manifests" 
+        fi   
+
+    - name: kuberenetes-render-yaml-file-for-overlays-dir
+      id: kuberenetes-render-yaml-file-for-overlays-dir
+      uses: docker://amazon/aws-cli:2.12.6
+      shell: sh
+      run: |
+        if [ ! -z "${{ inputs.kustomization-overlays-dir}}" ]; then
+          if [ ! -z "${{ inputs.environment-variables }}" ]; then
+
+            # Check if the directory exists
+            if [ -d ${{ inputs.kustomization-overlays-dir }} ]; then
+              echo "Directory '${{ inputs.kustomization-overlays-dir }}' exists."
+
+              # Remove the curly braces and split key-value pairs by commas
+              pairs=$(sed 's/[{}]/''/g; s/,/ /g' <<< "${{ inputs.environment-variables }}")
+
+              # Find YAML files in the specified directory and its subdirectories
+              FILES=$(find "${{ inputs.kustomization-overlays-dir }}" -type f -name '*.yml' -o -name '*.yaml')
+              if [ -n "$FILES" ]; then
+                echo "YAML files found in '${{ inputs.kustomization-overlays-dir }}':"
+                echo "$FILES"
+
+                # Loop through each YAML file and perform string replacement
+                for FILE in $FILES; do
+                  echo "Replacing placeholders in $FILE"
+               
+                  # Replace placeholders based on extracted key-value pairs
+                  for pair in $pairs; do
+                    key=$(cut -d':' -f1 <<< "$pair")
+                    value=$(cut -d':' -f2- <<< "$pair")
+                    echo "Key: $key, Value: $value"
+                    echo "Replacing started in $FILE file"
+                    sed -i -e "s#$key#$value#g" "$FILE"
+                  done
+                echo "After Replacing value in $FILE file\n"
+                cat "$FILE"
+                done
+              else
+                echo "No YAML files found in '${{ inputs.kustomization-overlays-dir }}'."
+                exit 1
+              fi
+            else
+              echo "Directory '${{ inputs.kustomization-overlays-dir }}' does not exist."
+              exit 1  
+            fi
+          else
+            echo "There are no variables to replace in resource manifests" 
+          fi
+        fi    
+
+    - id: kustomize-deploy
+      name: kustomize-deploy
+      uses: docker://alpine/k8s:1.27.3
+      shell: sh
+      run: |
+        if [ ! -z "${{ inputs.kustomization-overlays-dir}}" ]; then
+          kustomization_dir='${{ inputs.kustomization-overlays-dir }}'
+        else
+          kustomization_dir='${{ inputs.kustomization-base-dir }}'
+        fi
+        echo "Kustomization directory: $kustomization_dir"
+        cd $kustomization_dir
+        if [ -s "$kustomization_dir/kustomization.yaml" ] ||  [ -s "$kustomization_dir/kustomization.yml" ]; then
+          echo "The kustomization file is not empty"
+        else
+          echo "The Kustomization file is empty or does not exist in $kustomization_dir directory."
+          exit 1
+        fi
+        echo "Applying the kustomization file Started"
+        apply_output=$(kubectl apply -k ./ --output=yaml)
+        if [ $? -ne 0 ]; then
+          echo "failed to apply kustomization file" 
+          echo "Command output: $apply_output"
+          exit 1 
+        fi  
+        echo "Applying the kustomization file Completed: $apply_output"

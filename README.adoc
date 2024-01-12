@@ -1,0 +1,63 @@
+= CloudBees action: Deploy to Kubernetes cluster using a Kustomize config
+
+Use this action to customize Kubernetes resources by applying overlays or changes to base YAML manifests without directly modifying them.
+
+== Prerequisites
+
+Make sure to add link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBees action: Configure AWS credentials] to your YAML file, to initialize the connection with your AWS credentials.
+
+== Inputs
+
+[cols="2a,1a,1a,3a",options="header"]
+.Input details
+|===
+
+| Input name
+| Data type
+| Required?
+| Description
+
+| `kustomization-base-dir`
+| String
+| Yes
+| Path to the base kustomize directory to apply / deploy.
+
+| `kustomization-overlays-dir`
+| String
+| No
+| Path to the overlays kustomize directory to apply / deploy.
+
+| `environment-variables`
+| String
+| No
+| Parameters as json string to be replace in resource files.
+
+|===
+
+== Usage example
+
+=== To deploy to Kubernetes cluster using a Kustomize config
+
+In your YAML file, add:
+
+[source,yaml]
+----
+      - id: k8s-kustomize-deploy
+        name: k8s-kustomize-deploy.
+        uses: cloudbees-io/kustomize-deploy@v1
+        with:
+          kustomization-base-dir: ${{ cloudbees.workspace }}/base
+          kustomization-overlays-dir: ${{ cloudbees.workspace }}/overlays/dev
+          environment-variables: '{"IMAGE_NAME":"nginx:latest","PORT":80}'
+
+----
+
+== License
+
+This code is made available under the 
+link:https://opensource.org/license/mit/[MIT license].
+
+== References
+
+* Learn more about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform-actions/latest/[using actions in CloudBees workflows].
+* Learn about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform/latest/[the CloudBees platform].
