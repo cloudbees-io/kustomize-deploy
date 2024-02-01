@@ -1,10 +1,22 @@
-= CloudBees action: Deploy to Kubernetes cluster using a Kustomize config
+= CloudBees action: Deploy to a Kubernetes cluster using a Kustomize configuration
 
-Use this action to customize Kubernetes resources by applying overlays or changes to base YAML manifests without directly modifying them.
+Use this action to customize Kubernetes configurations and resources with the tool Kustomize, which uses overlays to change base YAML manifests without directly modifying them.
 
 == Prerequisites
 
-Make sure to add link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBees action: Configure AWS credentials] to your YAML file, to initialize the connection with your AWS credentials.
+Make sure to initialize the connection using your AWS credentials, by adding the following to your YAML file:
+
+[source,yaml]
+----
+      - name: Configure AWS credentials
+        uses: cloudbees-io/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AUTOMATED_TEST_KUBECTL_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AUTOMATED_TEST_KUBECTL_SECRET_KEY }}
+          aws-region: aws-region-1 
+----
+
+Refer to link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBees action: Configure AWS credentials] for more information.
 
 == Inputs
 
@@ -20,23 +32,21 @@ Make sure to add link:https://github.com/cloudbees-io/configure-aws-credentials[
 | `kustomization-base-dir`
 | String
 | Yes
-| Path to the base kustomize directory to apply / deploy.
+| Path to the Kustomize base directory.
 
 | `kustomization-overlays-dir`
 | String
 | No
-| Path to the overlays kustomize directory to apply / deploy.
+| Path to the Kustomize overlay directory.
 
 | `environment-variables`
-| String
+| JSON
 | No
-| Parameters as json string to be replace in resource files.
+| {K8S} environment variables, formatted as JSON data in key/value pairs.
 
 |===
 
 == Usage example
-
-=== To deploy to Kubernetes cluster using a Kustomize config
 
 In your YAML file, add:
 
