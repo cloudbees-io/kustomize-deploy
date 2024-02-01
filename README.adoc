@@ -1,6 +1,6 @@
-= CloudBees action: Deploy to a {K8S} cluster using a Kustomize configuration
+= CloudBees action: Deploy to a Kubernetes cluster using a Kustomize configuration
 
-Use this action to customize {K8S} configurations and resources with the tool Kustomize, which uses overlays to change base YAML manifests without directly modifying them.
+Use this action to customize Kubernetes configurations and resources with the tool Kustomize, which uses overlays to change base YAML manifests without directly modifying them.
 
 == Prerequisites
 
@@ -8,14 +8,12 @@ Make sure to initialize the connection using your AWS credentials, by adding the
 
 [source,yaml]
 ----
-      - name: Check out repo
-        uses: actions/checkout@v1
-
       - name: Configure AWS credentials
         uses: cloudbees-io/configure-aws-credentials@v1
         with:
-          role-to-assume: arn:aws:iam::123456789012:role/my-github-actions-role
-          aws-region: aws-region-1
+          aws-access-key-id: ${{ secrets.AUTOMATED_TEST_KUBECTL_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AUTOMATED_TEST_KUBECTL_SECRET_KEY }}
+          aws-region: aws-region-1 
 ----
 
 Refer to link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBees action: Configure AWS credentials] for more information.
