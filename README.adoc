@@ -13,7 +13,7 @@ Make sure to initialize the connection using your AWS credentials, by adding the
         with:
           aws-access-key-id: ${{ secrets.AUTOMATED_TEST_KUBECTL_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AUTOMATED_TEST_KUBECTL_SECRET_KEY }}
-          aws-region: aws-region-1 
+          aws-region: ap-south-1
 ----
 
 Refer to link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBees action: Configure AWS credentials] for more information.
