@@ -165,7 +165,7 @@ In your YAML file, add:
 ----
       - id: k8s-kustomize-deploy
         name: k8s-kustomize-deploy.
-        uses: cloudbees-io/kustomize-deploy@v1
+        uses: cloudbees-io/kustomize-deploy@v2
         with:
           kustomization-base-dir: ${{ cloudbees.workspace }}/testdata/base
           kustomization-overlays-dir: ${{ cloudbees.workspace }}/testdata/overlays/dev
