@@ -1,6 +1,6 @@
 = CloudBees action: Deploy to a Kubernetes cluster using a Kustomize configuration
 
-Use this action to customize Kubernetes configurations and resources with the tool Kustomize, which uses overlays to change base YAML manifests without directly modifying them.
+Use this action to customize Kubernetes configurations and resources with the  Kustomize, which uses overlays to change base YAML manifests without directly modifying them.
 
 == Prerequisites
 
@@ -11,8 +11,8 @@ Make sure to initialize the connection using your AWS credentials, by adding the
       - name: Configure AWS credentials
         uses: cloudbees-io/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTOMATED_TEST_KUBECTL_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AUTOMATED_TEST_KUBECTL_SECRET_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEU }}
+          aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEU }}
           aws-region: ap-south-1
 ----
 
@@ -39,10 +39,121 @@ Refer to link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBee
 | No
 | Path to the Kustomize overlay directory.
 
-| `environment-variables`
+| `kustomize-annotation`
 | JSON
 | No
-| {K8S} environment variables, formatted as JSON data in key/value pairs.
+| add/set/remove the annotations for kustomizing.
+[source,yaml]
+----
+    value example - 
+
+    '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
+----
+
+
+| `kustomize-label`
+| JSON
+| No
+| add/set/remove the labels for kustomizing.
+[source,yaml]
+----
+    value example - 
+
+    '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
+----
+
+
+| `kustomize-configmap-literal`
+| JSON
+| No
+| add the configmap literal for kustomizing.
+[source,yaml]
+----
+    value example - 
+
+    '{"name":"example-config","add":{"nam1":"val1","nam2":"val2"}}'
+----
+
+
+| `kustomize-configmap-file`
+| JSON
+| No
+| add the configmap file for kustomizing.
+[source,yaml]
+---- 
+    value example - 
+
+    '{"name":"my-config","add":"config.properties"}'
+----
+
+| `kustomize-secret-file`
+| JSON
+| No
+| add the secret file for kustomizing.
+[source,yaml]
+----
+    value example - 
+
+    '{"name":"my-secret","add":"secrets.properties"}'
+----
+
+| `kustomize-buildmetadata`
+| JSON
+| No
+| add/set/remove the build metadata for kustomizing.
+  only allowed values are originAnnotations, managedByLabel, transformerAnnotations
+[source,yaml]
+---- 
+    value example - 
+
+    '{"add":["originAnnotations"],"set":["managedByLabel"],"remove":["transformerAnnotations"]}'      
+----
+
+| `kustomize-image`
+| JSON
+| No
+| Set the image for kustomizing.
+[source,yaml]
+----
+    value example - 
+
+    '{"name":"nginx:1.7.9","newName":"nginx","newTag":"1.7.9-alpine"}'
+----
+
+| `kustomize-nameprefix`
+| String
+| No
+| Set the nameprefix for kustomizing.
+  value example - 
+    
+  "dev-" 
+
+| `kustomize-namesuffix`
+| String
+| No
+| Set the namesuffix for kustomizing.
+    value example - 
+     
+    "V2" 
+
+| `kustomize-namespace`
+| String
+| No
+| Set the namespace for kustomizing.
+    value example - 
+     
+    "dev" 
+
+| `kustomize-replicas`
+| JSON
+| No
+| Set the replicas for kustomizing.
+[source,yaml]
+----
+     value example - 
+
+      '["app:3","my-app:5"]'
+----
 
 |===
 
@@ -54,11 +165,21 @@ In your YAML file, add:
 ----
       - id: k8s-kustomize-deploy
         name: k8s-kustomize-deploy.
-        uses: cloudbees-io/kustomize-deploy@v1
+        uses: cloudbees-io/kustomize-deploy@v2
         with:
-          kustomization-base-dir: ${{ cloudbees.workspace }}/base
-          kustomization-overlays-dir: ${{ cloudbees.workspace }}/overlays/dev
-          environment-variables: '{"IMAGE_NAME":"nginx:latest","PORT":80}'
+          kustomization-base-dir: ${{ cloudbees.workspace }}/testdata/base
+          kustomization-overlays-dir: ${{ cloudbees.workspace }}/testdata/overlays/dev
+          kustomize-annotation: '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
+          kustomize-label: '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
+          kustomize-configmap-literal: '{"name":"example-config","add":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
+          kustomize-configmap-file: '{"name":"my-config","add":"config.properties","remove":"config.properties"}'
+          kustomize-secret-file: '{"name":"my-secret","namespace":"dev","add":"secrets.properties","set":"secrets.properties","remove":"secrets.properties"}'
+          kustomize-buildmetadata: '{"add":["originAnnotations"],"set":["managedByLabel"],"remove":["transformerAnnotations"]}'
+          kustomize-image: '{"name":"nginx:1.7.9","newName":"nginx","newTag":"1.7.9-alpine"}'
+          kustomize-replicas: '["hello:5"]'
+          kustomize-nameprefix: 'dev-'
+          kustomize-namesuffix: '-v2'
+          kustomize-namespace: 'dev'
 
 ----
 

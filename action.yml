@@ -9,134 +9,158 @@ inputs:
     required: true    
   kustomization-overlays-dir:
     description: Path to the overlays kustomize directory to apply / deploy
+    required: true
+  kustomize-annotation:
+    description: >
+     add/set/remove the annotations key-pairs for kustomizing.
+     value example - 
+        "{
+            "remove": {
+              "name1": "",
+              "name2": ""
+            },
+            "add": {
+              "name1": "value1",
+              "name2": "value2"
+            },
+            "set": {
+              "name1": "value1",
+              "name2": "value2"
+            }
+        }"
+   
     required: false
-  environment-variables:
-    description: Parameters as json to be replace in resource files
+    default: "{}"
+  kustomize-label:
+    description: >
+     add/set/remove the labels key-pairs for kustomizing.
+     value example - 
+          "{
+              "remove": {
+                "name1": "",
+                "name2": ""
+              },
+              "add": {
+                "name1": "value1",
+                "name2": "value2"
+              },
+              "set": {
+                "name1": "value1",
+                "name2": "value2"
+              }
+          }"
     required: false
+    default: "{}"
+  kustomize-configmap-literal:
+    description: >
+     add the configmap literal keypairs for kustomizing.
+     value example - 
+          "{
+              "name": "example-config",
+              "add": {
+                "name1": "value1",
+                "name2": "value2"
+              }
+          }"
+    required: false
+    default: "{}"
+  kustomize-configmap-file:
+    description: >
+     add the configmap file for kustomizing.
+     value example -  
+          "{
+              "name":    "my-config",
+              "add":     "config.properties"
+          }"
+    required: false
+    default: "{}"
+  kustomize-secret-file:
+    description: >
+     add the secret file for kustomizing.
+     value example - 
+        "{
+            "name":    "my-secrets",
+            "add":     "secret.properties",
+        }"
+    required: false
+    default: "{}"
+  kustomize-buildmetadata:
+    description: >
+     add/set/remove the build metadata for kustomizing.
+     value example -  
+        "{
+            "add":  ["originAnnotations"],
+            "set":   ["managedByLabel"] ,
+            "remove": ["transformerAnnotations"]
+
+        }"
+        only allowed values are originAnnotations, managedByLabel, transformerAnnotations
+    required: false
+    default: "{}"
+  kustomize-image: 
+    description: >
+     set the image for kustomizing.
+     value example - 
+        "{
+            "name":    "nginx:1.7.9",
+            "newName": "nginx",
+            "newTag": "1.7.9-alpine"
+        }"
+
+    required: false
+    default: "{}"
+  kustomize-nameprefix:
+    description: >
+     set the nameprefix for kustomizing.
+     value example - "dev-" 
+    required: false
+    default: ""
+  kustomize-namesuffix:
+    description: >
+     set the namesuffix for kustomizing.
+     value example - "V2" 
+    required: false
+    default: ""
+  kustomize-namespace:
+    description: >
+     set the namespace for kustomizing.
+     value example - "dev" 
+    required: false
+    default: ""
+  kustomize-replicas:
+    description: >
+     set the replicas for kustomizing.
+     value example - '["app:3","my-app:5"]'
+    required: false
+    default: "[]"
+
+outputs:
+  kustomize_output:
+    value: ${{ steps.kustomize-deploy.outputs.kustomize_output_var }}
+    description: kustomize  env variable output
     
 runs:
   using: composite
   steps:
-    - name: kuberenetes-render-yaml-file-for-base-dir
-      id: kuberenetes-render-yaml-file-for-base-dir
-      uses: docker://amazon/aws-cli:2.12.6
-      shell: sh
-      run: |
-        if [ ! -z "${{ inputs.environment-variables }}" ]; then
-
-          # Check if the directory exists
-          if [ -d ${{ inputs.kustomization-base-dir }} ]; then
-            echo "Directory '${{ inputs.kustomization-base-dir }}' exists."
-
-            # Remove the curly braces and split key-value pairs by commas
-            pairs=$(sed 's/[{}]/''/g; s/,/ /g' <<< "${{ inputs.environment-variables }}")
-
-            # Find YAML files in the specified directory and its subdirectories
-            FILES=$(find "${{ inputs.kustomization-base-dir }}" -type f \( -name '*.yml' -o -name '*.yaml' \) ! -name 'kustomization.yaml' ! -name 'kustomization.yml')
-
-            if [ -n "$FILES" ]; then
-              echo "YAML files found in '${{ inputs.kustomization-base-dir }}':"
-              echo "$FILES"
-
-              # Loop through each YAML file and perform string replacement
-              for FILE in $FILES; do
-                echo "Replacing placeholders in $FILE"
-               
-                # Replace placeholders based on extracted key-value pairs
-                for pair in $pairs; do
-                  key=$(cut -d':' -f1 <<< "$pair")
-                  value=$(cut -d':' -f2- <<< "$pair")
-                  echo "Key: $key, Value: $value"
-                  echo "Replacing started in $FILE file"
-                  sed -i -e "s#$key#$value#g" "$FILE"
-                done
-              echo "After Replacing value in $FILE file\n"
-              cat "$FILE"
-              done
-            else
-              echo "No YAML files found in '${{ inputs.kustomization-base-dir }}'."
-              exit 1
-            fi
-          else
-            echo "Directory '${{ inputs.kustomization-base-dir }}' does not exist."
-            exit 1  
-          fi
-        else
-          echo "There are no variables to replace in resource manifests" 
-        fi   
-
-    - name: kuberenetes-render-yaml-file-for-overlays-dir
-      id: kuberenetes-render-yaml-file-for-overlays-dir
-      uses: docker://amazon/aws-cli:2.12.6
-      shell: sh
-      run: |
-        if [ ! -z "${{ inputs.kustomization-overlays-dir}}" ]; then
-          if [ ! -z "${{ inputs.environment-variables }}" ]; then
-
-            # Check if the directory exists
-            if [ -d ${{ inputs.kustomization-overlays-dir }} ]; then
-              echo "Directory '${{ inputs.kustomization-overlays-dir }}' exists."
-
-              # Remove the curly braces and split key-value pairs by commas
-              pairs=$(sed 's/[{}]/''/g; s/,/ /g' <<< "${{ inputs.environment-variables }}")
-
-              # Find YAML files in the specified directory and its subdirectories
-              FILES=$(find "${{ inputs.kustomization-overlays-dir }}" -type f -name '*.yml' -o -name '*.yaml')
-              if [ -n "$FILES" ]; then
-                echo "YAML files found in '${{ inputs.kustomization-overlays-dir }}':"
-                echo "$FILES"
-
-                # Loop through each YAML file and perform string replacement
-                for FILE in $FILES; do
-                  echo "Replacing placeholders in $FILE"
-               
-                  # Replace placeholders based on extracted key-value pairs
-                  for pair in $pairs; do
-                    key=$(cut -d':' -f1 <<< "$pair")
-                    value=$(cut -d':' -f2- <<< "$pair")
-                    echo "Key: $key, Value: $value"
-                    echo "Replacing started in $FILE file"
-                    sed -i -e "s#$key#$value#g" "$FILE"
-                  done
-                echo "After Replacing value in $FILE file\n"
-                cat "$FILE"
-                done
-              else
-                echo "No YAML files found in '${{ inputs.kustomization-overlays-dir }}'."
-                exit 1
-              fi
-            else
-              echo "Directory '${{ inputs.kustomization-overlays-dir }}' does not exist."
-              exit 1  
-            fi
-          else
-            echo "There are no variables to replace in resource manifests" 
-          fi
-        fi    
-
     - id: kustomize-deploy
-      name: kustomize-deploy
-      uses: docker://alpine/k8s:1.27.3
+      uses: docker://public.ecr.aws/l7o7z1g8/actions/kustomize-actions:main-70c51a37726ac198428b71cd1dc5df2a4eac154e 
       shell: sh
+      env: 
+        RUN_ID: ${{ cloudbees.run_id }}
+        JOB_ID: ${{ job.id }}
+        STEP_ID: ${{ step.internal.id }}
+        DNS_URL: ${{ cloudbees.api.url }}
+        JWT_TOKEN: ${{ cloudbees.api.token }}
+
+        CONFIG_JSON: '{"kustomization_base_dir":"${{ inputs.kustomization-base-dir }}","kustomization_overlays_dir":"${{ inputs.kustomization-overlays-dir }}","kustomize_annotation":${{ inputs.kustomize-annotation }},"kustomize_label":${{ inputs.kustomize-label }},"kustomize_configmap_literal":${{ inputs.kustomize-configmap-literal }},"kustomize_configmap_file":${{ inputs.kustomize-configmap-file }},"kustomize_secret_file":${{ inputs.kustomize-secret-file }},"kustomize_buildmetadata":${{ inputs.kustomize-buildmetadata }},"kustomize_image":${{ inputs.kustomize-image }},"kustomize_nameprefix":"${{ inputs.kustomize-nameprefix }}","kustomize_namesuffix":"${{ inputs.kustomize-namesuffix }}","kustomize_namespace":"${{ inputs.kustomize-namespace }}","kustomize_replicas":${{ inputs.kustomize-replicas }}}'
+       
       run: |
-        if [ ! -z "${{ inputs.kustomization-overlays-dir}}" ]; then
-          kustomization_dir='${{ inputs.kustomization-overlays-dir }}'
-        else
-          kustomization_dir='${{ inputs.kustomization-base-dir }}'
-        fi
-        echo "Kustomization directory: $kustomization_dir"
-        cd $kustomization_dir
-        if [ -s "$kustomization_dir/kustomization.yaml" ] ||  [ -s "$kustomization_dir/kustomization.yml" ]; then
-          echo "The kustomization file is not empty"
-        else
-          echo "The Kustomization file is empty or does not exist in $kustomization_dir directory."
-          exit 1
-        fi
-        echo "Applying the kustomization file Started"
-        apply_output=$(kubectl apply -k ./ --output=yaml)
-        if [ $? -ne 0 ]; then
-          echo "failed to apply kustomization file" 
-          echo "Command output: $apply_output"
-          exit 1 
-        fi  
-        echo "Applying the kustomization file Completed: $apply_output"
+
+        kustomize version
+        set -x
+
+        cd /app
+        
+    
+         ./kustomize_app -i $CONFIG_JSON
+         
