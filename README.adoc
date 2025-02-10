@@ -58,19 +58,19 @@ Valid objects are `add`, `set`, and `remove`.
 | JSON
 | No
 | Refer to non-sensitive data as literals on a ConfigMap resource.
-Valid objects are `name`, `add`, and `remove`.
+Valid value is `add`.
 
 | `kustomize-configmap-file`
 | JSON
 | No
 | Refer to non-sensitive data as files on a ConfigMap resource.
-Valid objects are `name`, `add`, and `remove`.
+Valid value is `add`.
 
 | `kustomize-secret-file`
 | JSON
 | No
 | Refer to sensitive data as secrets files on a Secrets resource.
-Valid objects are `name`, `namespace`, `add`, `set`, and `remove`.
+Valid value is `add`.
 
 | `kustomize-buildmetadata`
 | JSON
