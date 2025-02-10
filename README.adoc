@@ -1,6 +1,6 @@
 = CloudBees action: Deploy to a Kubernetes cluster using a Kustomize configuration
 
-Use this action to customize Kubernetes configurations and resources with the  Kustomize, which uses overlays to change base YAML manifests without directly modifying them.
+Use this action to customize Kubernetes configurations and resources with Kustomize, which uses overlays to change base YAML manifests without directly modifying them.
 
 == Prerequisites
 
@@ -20,7 +20,10 @@ Refer to link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBee
 
 == Inputs
 
-[cols="2a,1a,1a,3a",options="header"]
+NOTE: Kustomize ConfigMap literals and files are not encrypted, so store only non-confidential data with `kustomize-configmap-literal` and `kustomize-configmap-file`.
+To store data that must be encrypted, use `kustomize-secret-file`.
+
+[cols="3a,2a,2a,6a",options="header"]
 .Input details
 |===
 
@@ -32,154 +35,140 @@ Refer to link:https://github.com/cloudbees-io/configure-aws-credentials[CloudBee
 | `kustomization-base-dir`
 | String
 | Yes
-| Path to the Kustomize base directory.
+| Set the path to the Kustomize base directory.
 
 | `kustomization-overlays-dir`
 | String
-| No
-| Path to the Kustomize overlay directory.
+| Yes
+| Set the path to the Kustomize overlay directory.
 
 | `kustomize-annotation`
 | JSON
 | No
-| add/set/remove the annotations for kustomizing.
-[source,yaml]
-----
-    value example - 
-
-    '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
-----
-
+| Add, update, or remove Kustomize annotations.
+Valid objects are `add`, `set`, and `remove`.
 
 | `kustomize-label`
 | JSON
 | No
-| add/set/remove the labels for kustomizing.
-[source,yaml]
-----
-    value example - 
-
-    '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
-----
-
+| Add, update, or remove Kustomize labels.
+Valid objects are `add`, `set`, and `remove`.
 
 | `kustomize-configmap-literal`
 | JSON
 | No
-| add the configmap literal for kustomizing.
-[source,yaml]
-----
-    value example - 
-
-    '{"name":"example-config","add":{"nam1":"val1","nam2":"val2"}}'
-----
-
+| Refer to non-sensitive data as literals on a ConfigMap resource.
+Valid value is `add`.
 
 | `kustomize-configmap-file`
 | JSON
 | No
-| add the configmap file for kustomizing.
-[source,yaml]
----- 
-    value example - 
-
-    '{"name":"my-config","add":"config.properties"}'
-----
+| Refer to non-sensitive data as files on a ConfigMap resource.
+Valid value is `add`.
 
 | `kustomize-secret-file`
 | JSON
 | No
-| add the secret file for kustomizing.
-[source,yaml]
-----
-    value example - 
-
-    '{"name":"my-secret","add":"secrets.properties"}'
-----
+| Refer to sensitive data as secrets files on a Secrets resource.
+Valid value is `add`.
 
 | `kustomize-buildmetadata`
 | JSON
 | No
-| add/set/remove the build metadata for kustomizing.
-  only allowed values are originAnnotations, managedByLabel, transformerAnnotations
-[source,yaml]
----- 
-    value example - 
-
-    '{"add":["originAnnotations"],"set":["managedByLabel"],"remove":["transformerAnnotations"]}'      
-----
+| Specify build information options in Kustomize labels and annotations.
+Valid options are `originAnnotations`, `managedByLabel`, and `transformerAnnotations`.
 
 | `kustomize-image`
 | JSON
 | No
-| Set the image for kustomizing.
-[source,yaml]
-----
-    value example - 
-
-    '{"name":"nginx:1.7.9","newName":"nginx","newTag":"1.7.9-alpine"}'
-----
+| Set container image names, tags and/or digests without creating patches.
+Valid options are `name`, `newName`, and `newTag`.
 
 | `kustomize-nameprefix`
 | String
 | No
-| Set the nameprefix for kustomizing.
-  value example - 
-    
-  "dev-" 
+| Add a prefix to names in defined YAML files.
 
 | `kustomize-namesuffix`
 | String
 | No
-| Set the namesuffix for kustomizing.
-    value example - 
-     
-    "V2" 
+| Add a suffix to names in defined YAML files.
+The suffix is appended before the content hash if the resource type is ConfigMap or Secret.
 
 | `kustomize-namespace`
 | String
 | No
-| Set the namespace for kustomizing.
-    value example - 
-     
-    "dev" 
+| Add a namespace, or override an existing namespace, on a resource.
 
 | `kustomize-replicas`
 | JSON
 | No
-| Set the replicas for kustomizing.
-[source,yaml]
-----
-     value example - 
-
-      '["app:3","my-app:5"]'
-----
+| Set the number of replicas for a resource.
 
 |===
 
-== Usage example
+== Usage examples
 
-In your YAML file, add:
+The example payload below does the following:
+
+* Adds annotations.
+* Updates existing labels.
+* Updates the build metadata options.
+* Overrides the namespace.
+* Adds a custom prefix.
 
 [source,yaml]
 ----
+
       - id: k8s-kustomize-deploy
-        name: k8s-kustomize-deploy.
-        uses: cloudbees-io/kustomize-deploy@v2
+        name: Add Kustomize labels and annotations
+        uses: https://github.com/cloudbees-io/kustomize-deploy@v2
         with:
           kustomization-base-dir: ${{ cloudbees.workspace }}/testdata/base
           kustomization-overlays-dir: ${{ cloudbees.workspace }}/testdata/overlays/dev
-          kustomize-annotation: '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
-          kustomize-label: '{"add":{"nam1":"val1","nam2":"val2"},"set":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
-          kustomize-configmap-literal: '{"name":"example-config","add":{"nam1":"val1","nam2":"val2"},"remove":{"nam1":"val1","nam2":"val2"}}'
-          kustomize-configmap-file: '{"name":"my-config","add":"config.properties","remove":"config.properties"}'
-          kustomize-secret-file: '{"name":"my-secret","namespace":"dev","add":"secrets.properties","set":"secrets.properties","remove":"secrets.properties"}'
+          kustomize-annotation: '{"add":{"nam1":"val1","nam2":"val2"}}'
+          kustomize-label: '{"set":{"nam1":"val1","nam2":"val2"}}'
           kustomize-buildmetadata: '{"add":["originAnnotations"],"set":["managedByLabel"],"remove":["transformerAnnotations"]}'
-          kustomize-image: '{"name":"nginx:1.7.9","newName":"nginx","newTag":"1.7.9-alpine"}'
-          kustomize-replicas: '["hello:5"]'
-          kustomize-nameprefix: 'dev-'
-          kustomize-namesuffix: '-v2'
           kustomize-namespace: 'dev'
+          kustomize-nameprefix: 'dev-'
+----
+
+The example payload below does the following:
+
+* Stores non-sensitive data as literals in a ConfigMap.
+* Stores non-sensitive data as files in a ConfigMap.
+* Adds container image information without creating patches.
+
+[source,yaml]
+----
+
+      - id: k8s-kustomize-deploy
+        name: Store non-sensitive data
+        uses: https://github.com/cloudbees-io/kustomize-deploy@v2
+        with:
+          kustomization-base-dir: ${{ cloudbees.workspace }}/testdata/base
+          kustomization-overlays-dir: ${{ cloudbees.workspace }}/testdata/overlays/dev
+          kustomize-configmap-literal: '{"name":"example-config","add":{"nam1":"val1","nam2":"val2"}}'
+          kustomize-configmap-file: '{"name":"my-config","add":"config.properties"}'
+          kustomize-image: '{"name":"nginx:1.7.9","newName":"nginx","newTag":"1.7.9-alpine"}'
+----
+
+The example payload below does the following:
+
+* Stores sensitive data encrypted as Secrets.
+* Sets the number of replicas for the `hello` resource.
+
+[source,yaml]
+----
+
+      - id: k8s-kustomize-deploy
+        name: Store secrets and set replicas
+        uses: https://github.com/cloudbees-io/kustomize-deploy@v2
+        with:
+          kustomization-base-dir: ${{ cloudbees.workspace }}/testdata/base
+          kustomization-overlays-dir: ${{ cloudbees.workspace }}/testdata/overlays/dev
+          kustomize-secret-file: '{"name":"my-secret","namespace":"dev","add":"secrets.properties"}'
+          kustomize-replicas: '["hello:5"]'
 
 ----
 
@@ -190,5 +179,5 @@ link:https://opensource.org/license/mit/[MIT license].
 
 == References
 
-* Learn more about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform-actions/latest/[using actions in CloudBees workflows].
-* Learn about link:https://docs.cloudbees.com/docs/cloudbees-saas-platform/latest/[the CloudBees platform].
+* Learn more about link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/actions[using actions in CloudBees workflows].
+* Learn about link:https://docs.cloudbees.com/docs/cloudbees-platform/latest/[the CloudBees platform].
