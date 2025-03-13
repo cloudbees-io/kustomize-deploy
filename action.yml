@@ -143,7 +143,7 @@ runs:
   using: composite
   steps:
     - id: kustomize-deploy
-      uses: docker://public.ecr.aws/l7o7z1g8/actions/kustomize-actions:main-70c51a37726ac198428b71cd1dc5df2a4eac154e 
+      uses: docker://public.ecr.aws/l7o7z1g8/actions/kustomize-actions:main-6a13ece0cb320bdeb9d02e4c83a2905bc4e752b1
       shell: sh
       env: 
         RUN_ID: ${{ cloudbees.run_id }}
